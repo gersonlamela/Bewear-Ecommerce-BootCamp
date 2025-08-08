@@ -5,12 +5,11 @@ import { notFound } from "next/navigation";
 import Footer from "@/components/common/footer";
 import Header from "@/components/common/header";
 import ProductList from "@/components/common/product-list";
-import { Button } from "@/components/ui/button";
 import db from "@/db";
 import { productTable, productVariantTable } from "@/db/schema";
 import { formatCents } from "@/helpers/format-cents";
 
-import QuantitySelector from "./components/quantity-selector";
+import ProductActions from "./components/product-actions";
 import VariantSelector from "./components/variant-selector";
 
 interface ProductVariantPageProps {
@@ -73,20 +72,7 @@ export default async function ProductVariantPage({
             {formatCents(productVariant.priceInCents)}
           </h3>
         </div>
-
-        <div className="px-5">
-          <QuantitySelector />
-        </div>
-
-        <div className="flex flex-col space-y-4 px-5">
-          <Button className="rounded-full" variant={"outline"}>
-            Adicionar ao carrinho
-          </Button>
-          <Button className="rounded-full" size="lg">
-            Comprar agora
-          </Button>
-        </div>
-
+        <ProductActions productVariantId={productVariant.id} />
         <div className="px-5">
           <p className="text-sm">{productVariant.product.description}</p>
         </div>
