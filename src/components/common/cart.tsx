@@ -1,5 +1,6 @@
 "use client";
 import { ShoppingBasketIcon } from "lucide-react";
+import Link from "next/link";
 
 import { formatCents } from "@/helpers/format-cents";
 import { useCart } from "@/hooks/queries/use-cart";
@@ -72,7 +73,9 @@ export default function Cart() {
                 <p>{formatCents(cart?.totalPriceInCents ?? 0)}</p>
               </div>
 
-              <Button className="mt-5 rounded-full">Finalizar a compra</Button>
+              <Button className="mt-5 rounded-full" asChild>
+                <Link href={"/cart/identification"}>Finalizar a compra</Link>
+              </Button>
             </div>
           )}
         </div>
