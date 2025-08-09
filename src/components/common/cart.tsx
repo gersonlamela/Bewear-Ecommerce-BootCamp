@@ -43,6 +43,7 @@ export default function Cart() {
                     key={item.id}
                     id={item.id}
                     productName={item.productVariant.product.name}
+                    productVariantId={item.productVariant.id}
                     productVariantImageUrl={item.productVariant.imageUrl}
                     productVariantName={item.productVariant.name}
                     productVariantPriceInCents={
