@@ -1,17 +1,17 @@
+import Footer from "@/components/common/footer";
+import Header from "@/components/common/header";
+import db from "@/db";
+import { shippingAddressTable } from "@/db/schema";
+import { auth } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-
-import Header from "@/components/common/header";
-import db from "@/db";
-import { cartTable, shippingAddressTable } from "@/db/schema";
-import { auth } from "@/lib/auth";
-
-import Addresses from "./components/addresses";
 import CartSummary from "../components/cart-summary";
-import Footer from "@/components/common/footer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatAddress } from "../helpers/address";
+import { Button } from "@/components/ui/button";
 
-export default async function IdentificationPage() {
+export default async function ConfirmationPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -34,7 +34,6 @@ export default async function IdentificationPage() {
       },
     },
   });
-
   if (!cart || cart?.items.length === 0) {
     redirect("/");
   }
@@ -45,14 +44,31 @@ export default async function IdentificationPage() {
     (acc, item) => acc + item.productVariant.priceInCents * item.quantity,
     0,
   );
+
+  if (!cart.shippingAddress) {
+    redirect("/cart/identification");
+  }
   return (
     <div className="flex h-screen flex-col justify-between">
       <Header />
       <div className="space-y-4 px-5">
-        <Addresses
-          shippingAddresses={shippingAddresses}
-          defaultShippingAddressId={cart.shippingAddress?.id || null}
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Identificação</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Card>
+              <CardContent>
+                <p className="text-sm">
+                  {formatAddress(cart?.shippingAddress)}
+                </p>
+              </CardContent>
+            </Card>
+            <Button className="w-full rounded-full" size={"lg"}>
+              Finalizar compra
+            </Button>
+          </CardContent>
+        </Card>
         <CartSummary
           subtotalInCents={cartTotalInCents}
           totalInCents={cartTotalInCents}
