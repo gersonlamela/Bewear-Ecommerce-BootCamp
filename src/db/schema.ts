@@ -140,7 +140,7 @@ export const shippingAddressTable = pgTable("shipping_address", {
   complement: text(),
   city: text().notNull(),
   state: text().notNull(),
-  neighbordhood: text().notNull(),
+  neighborhood: text().notNull(),
   zipCode: text().notNull(),
   country: text().notNull(),
   phone: text().notNull(),

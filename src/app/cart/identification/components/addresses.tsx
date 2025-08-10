@@ -5,6 +5,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
 
+import { PatternFormat } from "react-number-format";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -18,49 +20,66 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useCreateShippingAddress } from "@/hooks/mutations/use-create-shipping-address";
 
 const addressFormSchema = z.object({
-  email: z.email("Email inválido").min(1, "Email é obrigatório"),
-  nomeCompleto: z.string().min(1, "Nome completo é obrigatório"),
-  nif: z
+  email: z.email("Email inválido").min(1, "O email é obrigatório"),
+  fullName: z.string().min(1, "O nome completo é obrigatório"),
+  taxID: z
     .string()
-    .min(9, "NIF deve ter pelo menos 9 dígitos")
-    .max(9, "NIF deve ter no máximo 9 dígitos"),
-  telemovel: z.string().min(9, "Telemóvel deve ter pelo menos 9 dígitos"),
-  cep: z.string().min(4, "CEP é obrigatório"),
-  endereco: z.string().min(1, "Endereço é obrigatório"),
-  numero: z.string().min(1, "Número é obrigatório"),
-  complemento: z.string().optional(),
-  bairro: z.string().min(1, "Bairro é obrigatório"),
-  cidade: z.string().min(1, "Cidade é obrigatória"),
-  estado: z.string().min(1, "Estado é obrigatório"),
+    .min(9, "O NIF deve ter exatamente 9 dígitos")
+    .max(9, "O NIF deve ter exatamente 9 dígitos"),
+  phone: z
+    .string()
+    .min(9, "O número de telemóvel deve ter pelo menos 9 dígitos"),
+  zipCode: z.string().min(4, "O código postal é obrigatório"),
+  street: z.string().min(1, "A rua é obrigatória"),
+  number: z.string().min(1, "O número é obrigatório"),
+  complement: z.string().optional(),
+  neighborhood: z.string().min(1, "A localidade é obrigatória"),
+  city: z.string().min(1, "A cidade é obrigatória"),
+  state: z.string().min(1, "O distrito é obrigatório"),
 });
 
 type AddressFormValues = z.infer<typeof addressFormSchema>;
 
 export default function Addresses() {
+  const router = useRouter();
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
-
+  const createShippingAddressMutation = useCreateShippingAddress();
   const form = useForm<AddressFormValues>({
     resolver: zodResolver(addressFormSchema),
     defaultValues: {
       email: "",
-      nomeCompleto: "",
-      nif: "",
-      telemovel: "",
-      cep: "",
-      endereco: "",
-      numero: "",
-      complemento: "",
-      bairro: "",
-      cidade: "",
-      estado: "",
+      fullName: "",
+      taxID: "",
+      phone: "",
+      zipCode: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
     },
   });
 
-  async function onSubmit(values: AddressFormValues) {
-    console.log(values);
-  }
+  const onSubmit = async (values: AddressFormValues) => {
+    try {
+      const newAddress =
+        await createShippingAddressMutation.mutateAsync(values);
+      toast.success("Endereço criado com sucesso!");
+      form.reset();
+      setSelectedAddress(newAddress.id);
+
+      toast.success("Endereço vinculado ao carrinho!");
+    } catch (error) {
+      toast.error("Erro ao criar endereço. Tente novamente.");
+      console.error(error);
+    }
+  };
 
   return (
     <Card>
@@ -78,7 +97,7 @@ export default function Addresses() {
         {selectedAddress === "add_new" && (
           <Card className="mt-4">
             <CardHeader>
-              <CardTitle className="text-lg">Dados de Endereço</CardTitle>
+              <CardTitle className="text-lg">Endereço</CardTitle>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -94,7 +113,7 @@ export default function Addresses() {
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input placeholder="seu@email.pt" {...field} />
+                            <Input placeholder="example@email.com" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -102,12 +121,12 @@ export default function Addresses() {
                     />
                     <FormField
                       control={form.control}
-                      name="nomeCompleto"
+                      name="fullName"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Nome Completo</FormLabel>
                           <FormControl>
-                            <Input placeholder="Nome completo" {...field} />
+                            <Input placeholder="Nome Completo" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -115,10 +134,10 @@ export default function Addresses() {
                     />
                     <FormField
                       control={form.control}
-                      name="nif"
+                      name="taxID"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>NIF</FormLabel>
+                          <FormLabel>Nif</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="123456789"
@@ -132,14 +151,15 @@ export default function Addresses() {
                     />
                     <FormField
                       control={form.control}
-                      name="telemovel"
+                      name="phone"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Telemóvel</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="912345678"
-                              maxLength={9}
+                            <PatternFormat
+                              format="### ### ###"
+                              placeholder="912 345 678"
+                              customInput={Input}
                               {...field}
                             />
                           </FormControl>
@@ -149,14 +169,15 @@ export default function Addresses() {
                     />
                     <FormField
                       control={form.control}
-                      name="cep"
+                      name="zipCode"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>CEP</FormLabel>
+                          <FormLabel>Código postal</FormLabel>
                           <FormControl>
-                            <Input
+                            <PatternFormat
+                              format="####-###"
                               placeholder="1000-001"
-                              maxLength={8}
+                              customInput={Input}
                               {...field}
                             />
                           </FormControl>
@@ -166,12 +187,12 @@ export default function Addresses() {
                     />
                     <FormField
                       control={form.control}
-                      name="endereco"
+                      name="street"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Endereço</FormLabel>
+                          <FormLabel>Rua</FormLabel>
                           <FormControl>
-                            <Input placeholder="Rua das Flores" {...field} />
+                            <Input placeholder="Nome da Rua" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -179,10 +200,10 @@ export default function Addresses() {
                     />
                     <FormField
                       control={form.control}
-                      name="numero"
+                      name="number"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Número</FormLabel>
+                          <FormLabel>Nº Porta</FormLabel>
                           <FormControl>
                             <Input placeholder="123" {...field} />
                           </FormControl>
@@ -192,10 +213,10 @@ export default function Addresses() {
                     />
                     <FormField
                       control={form.control}
-                      name="complemento"
+                      name="complement"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Complemento (opcional)</FormLabel>
+                          <FormLabel>Complemento (optional)</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="Apartamento, andar, etc."
@@ -208,12 +229,12 @@ export default function Addresses() {
                     />
                     <FormField
                       control={form.control}
-                      name="bairro"
+                      name="neighborhood"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Bairro</FormLabel>
+                          <FormLabel>Distrito</FormLabel>
                           <FormControl>
-                            <Input placeholder="Bairro" {...field} />
+                            <Input placeholder="Distrito" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -221,12 +242,12 @@ export default function Addresses() {
                     />
                     <FormField
                       control={form.control}
-                      name="cidade"
+                      name="city"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Cidade</FormLabel>
                           <FormControl>
-                            <Input placeholder="Lisboa" {...field} />
+                            <Input placeholder="Porto" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -234,12 +255,12 @@ export default function Addresses() {
                     />
                     <FormField
                       control={form.control}
-                      name="estado"
+                      name="state"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Estado</FormLabel>
                           <FormControl>
-                            <Input placeholder="Lisboa" {...field} />
+                            <Input placeholder="Porto" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -247,7 +268,7 @@ export default function Addresses() {
                     />
                   </div>
                   <div className="flex justify-end pt-4">
-                    <Button type="submit">Guardar Endereço</Button>
+                    <Button type="submit">Salvar endereço</Button>
                   </div>
                 </form>
               </Form>
