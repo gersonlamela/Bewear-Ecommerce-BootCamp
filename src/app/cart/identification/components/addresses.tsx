@@ -26,6 +26,7 @@ import { useCreateShippingAddress } from "@/hooks/mutations/use-create-shipping-
 import { useUserAddresses } from "@/hooks/queries/use-user-addresses";
 import { formatAddress } from "../../helpers/address";
 import { shippingAddressTable } from "@/db/schema";
+import { useUpdateCartShippingAddress } from "@/hooks/mutations/use-update-cart-shipping-address";
 
 const addressFormSchema = z.object({
   email: z.email("Email inválido").min(1, "O email é obrigatório"),
@@ -58,8 +59,11 @@ export default function Addresses({
   defaultShippingAddressId,
 }: AddressesProps) {
   const router = useRouter();
-  const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<string | null>(
+    defaultShippingAddressId || null,
+  );
   const createShippingAddressMutation = useCreateShippingAddress();
+  const updateCartShippingAddressMutation = useUpdateCartShippingAddress();
   const { data: addresses, isLoading } = useUserAddresses({
     initialData: shippingAddresses,
   });
@@ -89,9 +93,27 @@ export default function Addresses({
       form.reset();
       setSelectedAddress(newAddress.id);
 
+      await updateCartShippingAddressMutation.mutateAsync({
+        shippingAddressId: newAddress.id,
+      });
       toast.success("Endereço vinculado ao carrinho!");
     } catch (error) {
       toast.error("Erro ao criar endereço. Tente novamente.");
+      console.error(error);
+    }
+  };
+
+  const handleGoToPayment = async () => {
+    if (!selectedAddress || selectedAddress === "add_new") return;
+
+    try {
+      await updateCartShippingAddressMutation.mutateAsync({
+        shippingAddressId: selectedAddress,
+      });
+      toast.success("Endereço selecionado para entrega!");
+      router.push("/cart/confirmation");
+    } catch (error) {
+      toast.error("Erro ao selecionar endereço. Tente novamente.");
       console.error(error);
     }
   };
@@ -145,6 +167,20 @@ export default function Addresses({
               </CardContent>
             </Card>
           </RadioGroup>
+        )}
+
+        {selectedAddress && selectedAddress !== "add_new" && (
+          <div className="mt-4">
+            <Button
+              onClick={handleGoToPayment}
+              className="w-full"
+              disabled={updateCartShippingAddressMutation.isPending}
+            >
+              {updateCartShippingAddressMutation.isPending
+                ? "A processar..."
+                : "Ir para pagamento"}
+            </Button>
+          </div>
         )}
 
         {selectedAddress === "add_new" && (
@@ -321,7 +357,19 @@ export default function Addresses({
                     />
                   </div>
                   <div className="flex justify-end pt-4">
-                    <Button type="submit">Salvar endereço</Button>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={
+                        createShippingAddressMutation.isPending ||
+                        updateCartShippingAddressMutation.isPending
+                      }
+                    >
+                      {createShippingAddressMutation.isPending ||
+                      updateCartShippingAddressMutation.isPending
+                        ? "A salvar..."
+                        : "Salvar endereço"}
+                    </Button>
                   </div>
                 </form>
               </Form>
