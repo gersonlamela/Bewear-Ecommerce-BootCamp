@@ -23,6 +23,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useCreateShippingAddress } from "@/hooks/mutations/use-create-shipping-address";
+import { useUserAddresses } from "@/hooks/queries/use-user-addresses";
+import { formatAddress } from "../../helpers/address";
+import { shippingAddressTable } from "@/db/schema";
 
 const addressFormSchema = z.object({
   email: z.email("Email inválido").min(1, "O email é obrigatório"),
@@ -45,10 +48,22 @@ const addressFormSchema = z.object({
 
 type AddressFormValues = z.infer<typeof addressFormSchema>;
 
-export default function Addresses() {
+interface AddressesProps {
+  shippingAddresses: (typeof shippingAddressTable.$inferSelect)[];
+  defaultShippingAddressId: string | null;
+}
+
+export default function Addresses({
+  shippingAddresses,
+  defaultShippingAddressId,
+}: AddressesProps) {
   const router = useRouter();
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const createShippingAddressMutation = useCreateShippingAddress();
+  const { data: addresses, isLoading } = useUserAddresses({
+    initialData: shippingAddresses,
+  });
+
   const form = useForm<AddressFormValues>({
     resolver: zodResolver(addressFormSchema),
     defaultValues: {
@@ -87,12 +102,50 @@ export default function Addresses() {
         <CardTitle>Identificação</CardTitle>
       </CardHeader>
       <CardContent>
-        <RadioGroup value={selectedAddress} onValueChange={setSelectedAddress}>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="add_new" id="add_new" />
-            <Label htmlFor="add_new">Adicionar novo endereço</Label>
+        {isLoading ? (
+          <div className="py-4 text-center">
+            <p>Carregando endereços...</p>
           </div>
-        </RadioGroup>
+        ) : (
+          <RadioGroup
+            value={selectedAddress}
+            onValueChange={setSelectedAddress}
+          >
+            {addresses?.length === 0 && (
+              <div className="py-4 text-center">
+                <p className="text-muted-foreground">
+                  Você ainda não possui endereços cadastrados.
+                </p>
+              </div>
+            )}
+
+            {addresses?.map((address) => (
+              <Card key={address.id}>
+                <CardContent>
+                  <div className="flex items-start space-x-2">
+                    <RadioGroupItem value={address.id} id={address.id} />
+                    <div className="flex-1">
+                      <Label htmlFor={address.id} className="cursor-pointer">
+                        <div>
+                          <p className="text-sm">{formatAddress(address)}</p>
+                        </div>
+                      </Label>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            <Card>
+              <CardContent>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="add_new" id="add_new" />
+                  <Label htmlFor="add_new">Adicionar novo endereço</Label>
+                </div>
+              </CardContent>
+            </Card>
+          </RadioGroup>
+        )}
 
         {selectedAddress === "add_new" && (
           <Card className="mt-4">
